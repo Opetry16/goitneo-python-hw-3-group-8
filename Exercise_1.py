@@ -109,20 +109,25 @@ def input_error(func):
 @input_error
 def add_contact(args, book):
     name, phone = args
-    record = Record(name)
-    record.add_phone(phone)
-    book.add_record(record)
-    return "Contact added."
+    try:
+        record = Record(name)
+        record.add_phone(phone)
+        book.add_record(record)
+        return "Contact added."
+    except ValueError as e:
+        return str(e)
 
 @input_error
 def change_contact(args, book):
     name, new_phone = args
     record = book.find(name)
     if record:
-        record.edit_phone(record.phones[0].value, new_phone)
-        return "Contact updated."
-    
-
+        try:
+            record.edit_phone(record.phones[0].value, new_phone)
+            return "Contact updated."
+        except ValueError as e:
+            return str(e)
+   
 @input_error
 def show_phone(args, book):
     name = args[0]
@@ -204,6 +209,6 @@ def main():
                     print(f"{day}: {', '.join(names)}")
         else:
             print("Invalid command.")
-
+            
 if __name__ == "__main__":
     main()
