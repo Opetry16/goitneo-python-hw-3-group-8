@@ -1,6 +1,7 @@
 from collections import UserDict, defaultdict
 from datetime import datetime, timedelta
 
+
 class Field:
     def __init__(self, value):
         self.value = value
@@ -11,13 +12,13 @@ class Field:
 class Name(Field):
     def __init__(self, value):
         if not value.strip():
-            raise ValueError("Name cannot be empty")
+            raise ValueError("Name cannot be empty.")
         super().__init__(value)
 
 class Phone(Field):
     def __init__(self, value):
         if not value.isdigit() or len(value) != 10:
-            raise ValueError("Invalid phone number")
+            raise ValueError("Invalid phone number. Please enter 10 digits.")
         super().__init__(value)
 
 class Birthday(Field):
@@ -43,6 +44,8 @@ class Record:
     def edit_phone(self, old_phone, new_phone):
         for phone in self.phones:
             if phone.value == old_phone:
+                if len(new_phone) != 10:
+                    raise ValueError("Invalid phone number. Please enter 10 digits.")
                 phone.value = new_phone
 
     def add_birthday(self, birthday):
@@ -67,20 +70,24 @@ class AddressBook(UserDict):
     def get_birthdays_per_week(self):
         birthdays_by_day = defaultdict(list)
         today = datetime.today().date()
+        next_week = today + timedelta(days=7)
+    
         for record in self.data.values():
             if record.birthday:
                 name = record.name.value
                 birthday = datetime.strptime(record.birthday.value, '%d.%m.%Y').date()
                 birthday_this_year = birthday.replace(year=today.year)
+            
                 if birthday_this_year < today:
                     birthday_this_year = birthday_this_year.replace(year=today.year + 1)
                 delta_days = (birthday_this_year - today).days
                 if delta_days < 7:
-                    day_of_week = (today + timedelta(days=delta_days)).strftime("%A")
+                    day_of_week = (today + timedelta(days = delta_days)).strftime("%A")
                     if day_of_week in ["Saturday", "Sunday"]:
                         day_of_week = "Monday"
-                    birthdays_by_day[day_of_week].append(name)
+                    birthdays_by_day[day_of_week].append(name)     
         return birthdays_by_day
+
 
 def parse_input(user_input):
     cmd, *args = user_input.split()
@@ -91,8 +98,12 @@ def input_error(func):
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except ValueError as e:
-            return str(e)
+        except ValueError:
+            return "Give me name and phone 10 digits please.If date Please use DD.MM.YYYY"
+        except KeyError:
+            return "Contact not found."
+        except IndexError:
+            return "Invalid command format."
     return inner
 
 @input_error
@@ -110,15 +121,17 @@ def change_contact(args, book):
     if record:
         record.edit_phone(record.phones[0].value, new_phone)
         return "Contact updated."
-    else:
-        raise KeyError("Contact not found.")
+    
 
 @input_error
 def show_phone(args, book):
     name = args[0]
     record = book.find(name)
-    if record:
-        return record.phones[0].value
+    if record is not None:
+        if record.phones:
+            return record.phones[0].value
+        else:
+            return "No phone number set for this contact."
     else:
         raise KeyError("Contact not found.")
 
@@ -134,8 +147,11 @@ def add_birthday(args, book):
     name, birthday = args
     record = book.find(name)
     if record:
-        record.add_birthday(birthday)
-        return "Birthday added."
+        try:
+            record.add_birthday(birthday)
+            return "Birthday added."
+        except ValueError as e:
+            return str(e) 
     else:
         raise KeyError("Contact not found.")
 
